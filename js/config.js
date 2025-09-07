@@ -30,6 +30,7 @@ const CONFIG = {
     // UI settings
     UI: {
         ANIMATION_DURATION: 300,
+        BANNER_DURATION: 10000,
         TIMER_UPDATE_INTERVAL: 100,
         VISUALIZATION_UPDATE_INTERVAL: 16 // ~60fps
     }

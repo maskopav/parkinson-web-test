@@ -538,6 +538,21 @@ select.error {
     text-align: center;
 }
 
+/* Global error banner (app-level) */
+.global-error-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #fed7d7;
+    color: #c53030;
+    padding: 15px;
+    text-align: center;
+    border-bottom: 2px solid #f56565;
+    z-index: 1000;
+    font-weight: 600;
+}
+
 .field-error {
     color: var(--color-error);
     font-size: 0.875rem;

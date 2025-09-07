@@ -4,7 +4,3 @@ echo ".env" >> .gitignore
 echo "*.log" >> .gitignore
 echo ".DS_Store" >> .gitignore
 echo "Thumbs.db" >> .gitignore
-
-# Add .gitignore to repository
-git add .gitignore
-git commit -m "Add .gitignore file"

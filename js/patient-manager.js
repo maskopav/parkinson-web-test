@@ -80,7 +80,7 @@ class PatientManager {
         try {
             // If editing an existing patient, update; otherwise create new
             if (this.isEditing && this.currentPatient) {
-                const updated = { ...this.currentPatient, ...formData };
+                const updated = { ...this.currentPatient, ...formData }; // Merging to objects, the spread (...) syntax "expands" an array into its elements - form data contains name, gender, etc.
                 await this.db.updatePatient(updated);
                 const reloaded = await this.db.getPatient(this.currentPatient.id);
                 await this.handlePatientFound(reloaded, { showSavedToast: true });
@@ -156,7 +156,7 @@ class PatientManager {
             : 'Patient was found in the database.';
         this.showSuccessBanner(message);
         
-        // Wait for explicit proceed
+        // Wait for explicit proceed - show proceed and change buttons
         this.attachProceedHandlerOnce();
         this.attachChangeHandlerOnce();
     }
@@ -178,8 +178,7 @@ class PatientManager {
         changeBtn.addEventListener('click', () => {
             // Reset view to allow selecting/creating another patient
             this.onNewPatientClicked();
-            const wrapper = document.getElementById('patient-form-wrapper');
-            if (wrapper) wrapper.style.display = 'block';
+            this.showForm();
         });
         this._changeBound = true;
     }
@@ -224,7 +223,7 @@ class PatientManager {
     setDefaultDate() {
         // Default to an adult date to aid selection
         const today = new Date();
-        const defaultDate = new Date(today.getFullYear() - 40, 0, 1);
+        const defaultDate = new Date(today.getFullYear() - 50);
         this.dateOfBirthInput.value = defaultDate.toISOString().split('T')[0];
     }
 
@@ -295,23 +294,32 @@ class PatientManager {
 
     // UI updates
     showPatientInfo(patient) {
-        const detailsContent = document.getElementById('patient-details-content');
-        if (!detailsContent) return;
-    
-        detailsContent.innerHTML = `
-            <div class="patient-info-grid">
-                <div class="info-item"><strong>ID:</strong> ${patient.id}</div>
-                <div class="info-item"><strong>Name:</strong> ${patient.firstName} ${patient.lastName}</div>
-                <div class="info-item"><strong>Date of Birth:</strong> ${new Date(patient.dateOfBirth).toLocaleDateString()}</div>
-                <div class="info-item"><strong>Gender:</strong> ${patient.gender}</div>
-                <div class="info-item"><strong>Created:</strong> ${new Date(patient.createdAt).toLocaleDateString()}</div>
-                ${patient.updatedAt ? `<div class="info-item"><strong>Updated:</strong> ${new Date(patient.updatedAt).toLocaleDateString()}</div>` : ''}
-            </div>
-        `;
-        if (this.patientInfoDisplay) {
-            this.patientInfoDisplay.style.display = 'block';
+        // Populate patient data in the HTML structure
+        this.updatePatientDisplay('patient-id-display', patient.id);
+        this.updatePatientDisplay('patient-name-display', `${patient.firstName} ${patient.lastName}`);
+        this.updatePatientDisplay('patient-dob-display', new Date(patient.dateOfBirth).toLocaleDateString());
+        this.updatePatientDisplay('patient-gender-display', patient.gender);
+        this.updatePatientDisplay('patient-created-display', new Date(patient.createdAt).toLocaleDateString());
+        
+        // Handle updated date (show/hide the updated item)
+        const updatedItem = document.getElementById('patient-updated-item');
+        if (patient.updatedAt) {
+            this.updatePatientDisplay('patient-updated-display', new Date(patient.updatedAt).toLocaleDateString());
+            if (updatedItem) updatedItem.style.display = 'block';
+        } else {
+            if (updatedItem) updatedItem.style.display = 'none';
         }
+        
+        // Show the patient display
+        this.showPatientDisplay();
         this.patientSection.classList.add('patient-selected');
+    }
+    
+    updatePatientDisplay(elementId, value) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.textContent = value;
+        }
     }
 
     showRecordingSection() {
@@ -319,10 +327,8 @@ class PatientManager {
         this.recordingSection.scrollIntoView({ behavior: 'smooth' });
     }
 
-    // ==========================================================================
+ 
     // BANNER MANAGEMENT - Centralized banner system
-    // ==========================================================================
-    
     showSuccessBanner(message) {
         this.showBanner(message, 'success');
     }
@@ -347,9 +353,9 @@ class PatientManager {
         banner.style.display = 'block';
         banner.scrollIntoView({ behavior: 'smooth' });
         
-        // Auto-hide success/info messages after 5 seconds
+        // Auto-hide success/info messages after BANNER_DURATION seconds
         if (type === 'success' || type === 'info') {
-            setTimeout(() => this.hideBanner(), 5000);
+            setTimeout(() => this.hideBanner(), CONFIG.UI.BANNER_DURATION);
         }
     }
     
@@ -360,10 +366,7 @@ class PatientManager {
         }
     }
     
-    // ==========================================================================
     // UI STATE MANAGEMENT - Clean form/display state handling
-    // ==========================================================================
-    
     hideForm() {
         const wrapper = document.getElementById('patient-form-wrapper');
         if (wrapper) {
@@ -387,16 +390,6 @@ class PatientManager {
     hidePatientDisplay() {
         if (this.patientInfoDisplay) {
             this.patientInfoDisplay.style.display = 'none';
-        }
-    }
-    
-
-    hideError() {
-        // Legacy method - use hideBanner() instead
-        this.hideBanner();
-        const errorMessage = document.getElementById('error-message');
-        if (errorMessage) {
-            errorMessage.style.display = 'none';
         }
     }
 

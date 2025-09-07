@@ -7,6 +7,9 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- Global error banner -->
+    <div id="global-error" class="global-error-banner" style="display: none;"></div>
+
     <div class="container">
         <header>
             <h1>Parkinson Web Test Application</h1>
@@ -66,7 +69,32 @@
             <div id="patient-info-display" class="patient-info-display" style="display: none;">
                 <h3>Current Patient</h3>
                 <div id="patient-details">
-                    <div id="patient-details-content"></div>
+                    <div class="patient-info-grid">
+                        <div class="info-item">
+                            <strong>ID:</strong> 
+                            <span id="patient-id-display">-</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Name:</strong> 
+                            <span id="patient-name-display">-</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Date of Birth:</strong> 
+                            <span id="patient-dob-display">-</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Gender:</strong> 
+                            <span id="patient-gender-display">-</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Created:</strong> 
+                            <span id="patient-created-display">-</span>
+                        </div>
+                        <div class="info-item" id="patient-updated-item" style="display: none;">
+                            <strong>Updated:</strong> 
+                            <span id="patient-updated-display">-</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="action-buttons">
                     <button id="change-patient-btn" class="btn btn-secondary">Change User</button>
@@ -138,7 +166,22 @@
         </section>
         
         <!-- Database Status -->
-        <div id="db-status" class="db-status" style="display: none;"></div>
+        <div id="db-status" class="db-status" style="display: none;">
+            <div class="db-stats">
+                <h4>Database Status</h4>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <strong>Total Patients:</strong> <span id="stat-total-patients">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <strong>Total Recordings:</strong> <span id="stat-total-recordings">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <strong>Total Storage:</strong> <span id="stat-total-storage">0 Bytes</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     
     <!-- Scripts -->

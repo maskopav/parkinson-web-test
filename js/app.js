@@ -50,23 +50,15 @@ class ParkinsonWebTestApp {
             // Show database status if there's data
             if (stats.totalPatients > 0 || stats.totalRecordings > 0) {
                 const dbStatusElement = document.getElementById('db-status');
-                dbStatusElement.innerHTML = `
-                    <div class="db-stats">
-                        <h4>Database Status</h4>
-                        <div class="stats-grid">
-                            <div class="stat-item">
-                                <strong>Total Patients:</strong> ${stats.totalPatients}
-                            </div>
-                            <div class="stat-item">
-                                <strong>Total Recordings:</strong> ${stats.totalRecordings}
-                            </div>
-                            <div class="stat-item">
-                                <strong>Total Storage:</strong> ${this.formatBytes(stats.totalStorage)}
-                            </div>
-                        </div>
-                    </div>
-                `;
-                dbStatusElement.style.display = 'block';
+                const patientsEl = document.getElementById('stat-total-patients');
+                const recordingsEl = document.getElementById('stat-total-recordings');
+                const storageEl = document.getElementById('stat-total-storage');
+
+                if (patientsEl) patientsEl.textContent = String(stats.totalPatients);
+                if (recordingsEl) recordingsEl.textContent = String(stats.totalRecordings);
+                if (storageEl) storageEl.textContent = this.formatBytes(stats.totalStorage);
+
+                if (dbStatusElement) dbStatusElement.style.display = 'block';
             }
         } catch (error) {
             console.error('Error showing initial status:', error);
@@ -101,31 +93,12 @@ class ParkinsonWebTestApp {
     }
 
     showGlobalError(message) {
-        // Create a global error banner
-        const errorBanner = document.createElement('div');
-        errorBanner.className = 'global-error-banner';
-        errorBanner.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: #fed7d7;
-            color: #c53030;
-            padding: 15px;
-            text-align: center;
-            border-bottom: 2px solid #f56565;
-            z-index: 1000;
-            font-weight: 600;
-        `;
+        const errorBanner = document.getElementById('global-error');
+        if (!errorBanner) return;
         errorBanner.textContent = message;
-        
-        document.body.appendChild(errorBanner);
-        
-        // Remove after 10 seconds
+        errorBanner.style.display = 'block';
         setTimeout(() => {
-            if (errorBanner.parentNode) {
-                errorBanner.parentNode.removeChild(errorBanner);
-            }
+            if (errorBanner) errorBanner.style.display = 'none';
         }, 10000);
     }
 
@@ -202,13 +175,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('Parkinson Web Test Application started');
     } catch (error) {
         console.error('Failed to start application:', error);
-        document.body.innerHTML = `
-            <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
-                <h1>Application Error</h1>
-                <p>Failed to initialize the application. Please refresh the page or contact support.</p>
-                <p>Error: ${error.message}</p>
-            </div>
-        `;
+        const errorBanner = document.getElementById('global-error');
+        if (errorBanner) {
+            errorBanner.textContent = 'Failed to initialize the application. Please refresh the page.';
+            errorBanner.style.display = 'block';
+        }
     }
 });
 
