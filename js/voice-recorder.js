@@ -1,420 +1,646 @@
-// Voice recorder module
+/**
+ * Voice Recorder Module
+ * Handles audio recording with pause/resume functionality, visualization, and storage
+ */
 class VoiceRecorder {
     constructor(databaseManager, patientManager) {
         this.db = databaseManager;
         this.patientManager = patientManager;
         
-        // DOM elements
-        this.startBtn = document.getElementById('start-btn');
-        this.pauseBtn = document.getElementById('pause-btn');
-        this.resumeBtn = document.getElementById('resume-btn');
-        this.stopBtn = document.getElementById('stop-btn');
-        this.saveRecordingBtn = document.getElementById('save-recording-btn');
-        this.downloadBtn = document.getElementById('download-btn');
-        this.statusText = document.getElementById('status-text');
-        this.statusIndicator = document.getElementById('status-indicator');
-        this.recordingTime = document.getElementById('recording-time');
-        this.levelIndicator = document.getElementById('level-indicator');
-        this.audioPlayer = document.getElementById('audio-player');
-        this.audioPlayback = document.getElementById('audio-playback');
-        this.errorMessage = document.getElementById('error-message');
-
-        // Recording state
-        this.mediaRecorder = null;
-        this.audioStream = null;
-        this.audioChunks = [];
-        this.isRecording = false;
-        this.isPaused = false;
-        this.startTime = null;
-        this.pausedDuration = 0;
-        this.timerInterval = null;
-        this.audioContext = null;
-        this.analyser = null;
-        this.microphone = null;
-        this.recordingBlob = null;
-        this.recordingDuration = 0;
-
+        // Initialize all components
+        this.elements = this.initializeDOMElements();
+        this.state = this.initializeState();
+        this.recorder = this.initializeRecorderState();
+        this.timer = this.initializeTimerState();
+        this.audio = this.initializeAudioState();
+        
         this.init();
     }
 
+    // =============================================================================
+    // INITIALIZATION METHODS
+    // =============================================================================
+    initializeDOMElements() {
+        return {
+            // Control buttons
+            startBtn: document.getElementById('start-btn'),
+            pauseBtn: document.getElementById('pause-btn'),
+            resumeBtn: document.getElementById('resume-btn'),
+            stopBtn: document.getElementById('stop-btn'),
+            saveBtn: document.getElementById('save-recording-btn'),
+            downloadBtn: document.getElementById('download-btn'),
+            
+            // Display elements
+            statusText: document.getElementById('status-text'),
+            statusIndicator: document.getElementById('status-indicator'),
+            recordingTime: document.getElementById('recording-time'),
+            levelIndicator: document.getElementById('level-indicator'),
+            errorMessage: document.getElementById('error-message'),
+            
+            // Audio elements
+            audioPlayer: document.getElementById('audio-player'),
+            audioPlayback: document.getElementById('audio-playback')
+        };
+    }
+
+    initializeState() {
+        return {
+            isRecording: false,
+            isPaused: false,
+            hasRecording: false
+        };
+    }
+
+    initializeRecorderState() {
+        return {
+            mediaRecorder: null,
+            audioStream: null,
+            audioChunks: [],
+            recordingBlob: null,
+            mimeType: null
+        };
+    }
+
+    initializeTimerState() {
+        return {
+            startTime: null,
+            pausedDuration: 0,
+            totalDuration: 0,
+            interval: null
+        };
+    }
+
+    initializeAudioState() {
+        return {
+            context: null,
+            analyser: null,
+            microphone: null,
+            animationId: null
+        };
+    }
+
     init() {
-        // Check for browser support
+        if (!this.checkBrowserSupport()) {
+            return;
+        }
+        
+        this.bindEventListeners();
+        this.updateUI();
+        
+        console.log('Voice Recorder initialized successfully');
+    }
+
+    checkBrowserSupport() {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            this.showError('Audio recording is not supported in this browser. Use Chrome, Edge, Safari 14+, or Firefox.');
-            return;
+            this.showErrorBanner('Audio recording is not supported in this browser. Use Chrome, Edge, Safari 14+, or Firefox.');
+            return false;
         }
-
-        this.bindEvents();
-        console.log('Voice Recorder initialized');
+        return true;
     }
 
-    bindEvents() {
-        this.startBtn.addEventListener('click', () => this.startRecording());
-        this.pauseBtn.addEventListener('click', () => this.pauseRecording());
-        this.resumeBtn.addEventListener('click', () => this.resumeRecording());
-        this.stopBtn.addEventListener('click', () => this.stopRecording());
-        this.saveRecordingBtn.addEventListener('click', () => this.saveRecordingToDatabase());
-        this.downloadBtn.addEventListener('click', () => this.downloadRecording());
+    bindEventListeners() {
+        this.elements.startBtn.addEventListener('click', () => this.handleStart());
+        this.elements.pauseBtn.addEventListener('click', () => this.handlePause());
+        this.elements.resumeBtn.addEventListener('click', () => this.handleResume());
+        this.elements.stopBtn.addEventListener('click', () => this.handleStop());
+        this.elements.saveBtn.addEventListener('click', () => this.handleSave());
+        this.elements.downloadBtn.addEventListener('click', () => this.handleDownload());
     }
 
-    async startRecording() {
-        // iOS/Safari constraints: secure context (https) and user gesture
-        if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-            this.showError('Recording requires a secure context (https) on mobile. Use the HTTPS server or connect via localhost.');
-            return;
-        }
-
-        if (!this.patientManager.getCurrentPatient()) {
-            this.showError('Please select or create a patient before recording.');
+    // =============================================================================
+    // MAIN RECORDING CONTROL METHODS
+    // =============================================================================
+    async handleStart() {
+        if (!this.validateStartConditions()) {
             return;
         }
 
         try {
-            // Request microphone access with mobile-friendly constraints
-            this.audioStream = await navigator.mediaDevices.getUserMedia({
-                audio: {
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true
-                }
-            });
-
-            // Setup audio context for visualization
-            this.setupAudioVisualization();
-
-            // Create MediaRecorder
-            const mimeType = this.getSupportedMimeType();
-            this.mediaRecorder = new MediaRecorder(this.audioStream, { mimeType });
-
-            // Setup MediaRecorder event listeners
-            this.mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    this.audioChunks.push(event.data);
-                }
-            };
-
-            this.mediaRecorder.onstop = () => {
-                this.processRecording();
-            };
-
-            // Start recording
-            this.audioChunks = [];
-            this.mediaRecorder.start(CONFIG.RECORDING.CHUNK_INTERVAL);
-            
-            // Update state
-            this.isRecording = true;
-            this.isPaused = false;
-            this.startTime = Date.now();
-            this.pausedDuration = 0;
-            
-            // Start timer and visualization
-            this.startTimer();
-            this.startVisualization();
-            
-            // Update UI
-            this.updateUI();
-            this.hideError();
-
+            await this.startRecording();
+            console.log('Recording started successfully');
         } catch (error) {
-            console.error('Error starting recording:', error);
-            if (error && (error.name === 'NotAllowedError' || error.name === 'SecurityError')) {
-                this.showError('Microphone access was blocked. On iPhone: use Safari, ensure HTTPS, and allow microphone permissions in Settings > Safari > Camera/Microphone.');
-            } else if (error && error.name === 'NotFoundError') {
-                this.showError('No microphone was found. Check your device permissions and try again.');
-            } else {
-                this.showError('Could not access microphone. Ensure HTTPS on mobile and allow permissions, then try again.');
-            }
+            this.handleRecordingError(error);
         }
+    }
+
+    handlePause() {
+        if (this.canPause()) {
+            this.pauseRecording();
+        }
+    }
+
+    handleResume() {
+        if (this.canResume()) {
+            this.resumeRecording();
+        }
+    }
+
+    handleStop() {
+        if (this.canStop()) {
+            this.stopRecording();
+        }
+    }
+
+    async handleSave() {
+        if (!this.state.hasRecording) {
+            this.showErrorBanner('No recording available to save.');
+            return;
+        }
+
+        try {
+            await this.saveToDatabase();
+            this.showSuccessBanner('Recording saved successfully');
+        } catch (error) {
+            this.showErrorBanner('Failed to save recording. Please try again.');
+            console.error('Save error:', error);
+        }
+    }
+
+    handleDownload() {
+        if (this.state.hasRecording) {
+            this.downloadRecording();
+        }
+    }
+
+    // =============================================================================
+    // CORE RECORDING FUNCTIONALITY
+    // =============================================================================
+    async startRecording() {
+        // Get microphone access
+        this.recorder.audioStream = await this.getMicrophoneAccess();
+        
+        // Setup recorder
+        this.setupMediaRecorder();
+        this.setupAudioVisualization();
+        
+        // Start recording
+        this.recorder.mediaRecorder.start(CONFIG.RECORDING.CHUNK_INTERVAL);
+        
+        // Update state
+        this.state.isRecording = true;
+        this.state.isPaused = false;
+        
+        // Start timer and visualization
+        this.startTimer();
+        this.startVisualization();
+        
+        // Update UI
+        this.updateUI();
+        this.hideBanner();
     }
 
     pauseRecording() {
-        if (this.mediaRecorder && this.isRecording && !this.isPaused) {
-            this.mediaRecorder.pause();
-            this.isPaused = true;
-            this.pausedDuration += Date.now() - this.startTime;
-            this.stopTimer();
-            this.stopVisualization();
-            this.updateUI();
-        }
+        this.recorder.mediaRecorder.pause();
+        this.state.isPaused = true;
+        
+        // Update timer
+        this.timer.pausedDuration += Date.now() - this.timer.startTime;
+        
+        // Stop visualization
+        this.stopVisualization();
+        
+        this.updateUI();
     }
 
     resumeRecording() {
-        if (this.mediaRecorder && this.isRecording && this.isPaused) {
-            this.mediaRecorder.resume();
-            this.isPaused = false;
-            this.startTime = Date.now();
-            this.startTimer();
-            this.startVisualization();
-            this.updateUI();
-        }
+        this.recorder.mediaRecorder.resume();
+        this.state.isPaused = false;
+        
+        // Reset timer
+        this.timer.startTime = Date.now();
+        
+        // Restart visualization
+        this.startVisualization();
+        
+        this.updateUI();
     }
 
     stopRecording() {
-        if (this.mediaRecorder && this.isRecording) {
-            this.mediaRecorder.stop();
-            this.isRecording = false;
-            this.isPaused = false;
-            
-            // Calculate final duration
-            this.recordingDuration = Date.now() - this.startTime + this.pausedDuration;
-            
-            // Stop all streams
-            if (this.audioStream) {
-                this.audioStream.getTracks().forEach(track => track.stop());
+        // Stop recorder
+        this.recorder.mediaRecorder.stop();
+        
+        // Update state
+        this.state.isRecording = false;
+        this.state.isPaused = false;
+        
+        // Calculate final duration
+        this.timer.totalDuration = this.getCurrentElapsedTime();
+        
+        // Cleanup
+        this.stopVisualization();
+        this.cleanupAudioStream();
+        this.cleanupAudioContext();
+        
+        this.processRecording();
+        this.updateUI();
+    }
+
+    // =============================================================================
+    // MEDIA RECORDER SETUP
+    // =============================================================================
+
+    async getMicrophoneAccess() {
+        const constraints = {
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true
             }
-            
-            // Stop timer and visualization
-            this.stopTimer();
-            this.stopVisualization();
-            
-            // Clean up audio context
-            if (this.audioContext) {
-                this.audioContext.close();
+        };
+        return await navigator.mediaDevices.getUserMedia(constraints);
+    }
+
+    setupMediaRecorder() {
+        this.recorder.mimeType = this.getSupportedMimeType();
+        this.recorder.mediaRecorder = new MediaRecorder(
+            this.recorder.audioStream, 
+            { mimeType: this.recorder.mimeType }
+        );
+
+        // Setup event handlers
+        this.recorder.mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                this.recorder.audioChunks.push(event.data);
             }
-            
-            this.updateUI();
-        }
+        };
+
+        this.recorder.mediaRecorder.onstop = () => {
+            this.processRecording();
+        };
     }
 
     processRecording() {
-        if (this.audioChunks.length > 0) {
-            this.recordingBlob = new Blob(this.audioChunks, { 
-                type: this.getSupportedMimeType() 
-            });
-            
-            const audioUrl = URL.createObjectURL(this.recordingBlob);
-            
-            // Setup audio player
-            this.audioPlayer.src = audioUrl;
-            this.audioPlayback.style.display = 'block';
-            
-            console.log('Recording processed successfully');
-        }
-    }
-
-    async saveRecordingToDatabase() {
-        if (!this.recordingBlob) {
-            this.showError('No recording available to save.');
+        if (this.recorder.audioChunks.length === 0) {
             return;
         }
 
-        const currentPatient = this.patientManager.getCurrentPatient();
-        if (!currentPatient) {
-            this.showError('No patient selected. Please select a patient first.');
-            return;
-        }
+        // Create blob
+        this.recorder.recordingBlob = new Blob(
+            this.recorder.audioChunks, 
+            { type: this.recorder.mimeType }
+        );
 
-        try {
-            const recordingData = {
-                patientId: currentPatient.id,
-                audioBlob: this.recordingBlob,
-                duration: this.recordingDuration,
-                mimeType: this.getSupportedMimeType(),
-                fileSize: this.recordingBlob.size
-            };
+        // Setup audio player
+        const audioUrl = URL.createObjectURL(this.recorder.recordingBlob);
+        this.elements.audioPlayer.src = audioUrl;
+        this.elements.audioPlayback.style.display = 'block';
 
-            const recordingId = await this.db.addRecording(recordingData);
-            
-            this.showPersistentNotice(`Recording saved successfully with ID: ${recordingId}`, 'success');
-            
-            // Update database status
-            this.updateDatabaseStatus();
-            
-        } catch (error) {
-            console.error('Error saving recording:', error);
-            this.showPersistentNotice('Error saving recording to database. Please try again.', 'error');
-        }
+        // Update state
+        this.state.hasRecording = true;
+
+        console.log('Recording processed successfully');
     }
 
-    downloadRecording() {
-        if (this.recordingBlob) {
-            const url = URL.createObjectURL(this.recordingBlob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `parkinson-voice-test-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.webm`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-    }
-
+    // =============================================================================
+    // AUDIO VISUALIZATION
+    // =============================================================================
     setupAudioVisualization() {
         try {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            this.analyser = this.audioContext.createAnalyser();
-            this.microphone = this.audioContext.createMediaStreamSource(this.audioStream);
+            this.audio.context = new (window.AudioContext || window.webkitAudioContext)();
+            this.audio.analyser = this.audio.context.createAnalyser();
+            this.audio.microphone = this.audio.context.createMediaStreamSource(this.recorder.audioStream);
             
-            this.analyser.fftSize = 256;
-            this.microphone.connect(this.analyser);
+            this.audio.analyser.fftSize = 256;
+            this.audio.microphone.connect(this.audio.analyser);
         } catch (error) {
             console.warn('Audio visualization not available:', error);
         }
     }
 
     startVisualization() {
-        if (!this.analyser) return;
+        if (!this.audio.analyser) return;
 
-        const bufferLength = this.analyser.frequencyBinCount;
+        const bufferLength = this.audio.analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
 
-        const updateLevel = () => {
-            if (!this.isRecording || this.isPaused) return;
-
-            this.analyser.getByteFrequencyData(dataArray);
-            
-            // Calculate average volume
-            let sum = 0;
-            for (let i = 0; i < bufferLength; i++) {
-                sum += dataArray[i];
+        const animate = () => {
+            if (!this.state.isRecording || this.state.isPaused) {
+                return;
             }
-            const average = sum / bufferLength;
+
+            this.audio.analyser.getByteFrequencyData(dataArray);
+            
+            // Calculate and display volume level
+            const average = this.calculateAverageVolume(dataArray);
             const percentage = (average / 255) * 100;
+            this.elements.levelIndicator.style.width = percentage + '%';
             
-            // Update level indicator
-            this.levelIndicator.style.width = percentage + '%';
-            
-            // Continue animation
-            requestAnimationFrame(updateLevel);
+            this.audio.animationId = requestAnimationFrame(animate);
         };
 
-        updateLevel();
+        animate();
     }
 
     stopVisualization() {
-        if (this.levelIndicator) {
-            this.levelIndicator.style.width = '0%';
+        if (this.audio.animationId) {
+            cancelAnimationFrame(this.audio.animationId);
+            this.audio.animationId = null;
+        }
+        
+        if (this.elements.levelIndicator) {
+            this.elements.levelIndicator.style.width = '0%';
         }
     }
 
+    calculateAverageVolume(dataArray) {
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+            sum += dataArray[i];
+        }
+        return sum / dataArray.length;
+    }
+
+    // =============================================================================
+    // TIMER FUNCTIONALITY
+    // =============================================================================
     startTimer() {
-        this.timerInterval = setInterval(() => {
-            const elapsed = Date.now() - this.startTime + this.pausedDuration;
-            const seconds = Math.floor(elapsed / 1000);
-            const minutes = Math.floor(seconds / 60);
-            const remainingSeconds = seconds % 60;
-            
-            this.recordingTime.textContent = 
-                `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+        this.timer.startTime = Date.now();
+        this.timer.pausedDuration = 0;
+        
+        this.timer.interval = setInterval(() => {
+            const elapsed = this.getCurrentElapsedTime();
+            const formatted = this.formatDuration(elapsed);
+            this.elements.recordingTime.textContent = formatted;
         }, CONFIG.UI.TIMER_UPDATE_INTERVAL);
     }
 
-    stopTimer() {
-        if (this.timerInterval) {
-            clearInterval(this.timerInterval);
-            this.timerInterval = null;
+    getCurrentElapsedTime() {
+        if (!this.state.isRecording) {
+            return this.timer.totalDuration || 0;
         }
+        
+        if (this.state.isPaused) {
+            return this.timer.pausedDuration;
+        }
+        
+        return Date.now() - this.timer.startTime + this.timer.pausedDuration;
     }
 
+    formatDuration(milliseconds) {
+        const totalSeconds = Math.floor(milliseconds / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        
+        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    // =============================================================================
+    // DATA MANAGEMENT
+    // =============================================================================
+
+    async saveToDatabase() {
+        const currentPatient = this.patientManager.getCurrentPatient();
+        if (!currentPatient) {
+            throw new Error('No patient selected');
+        }
+
+        const recordingData = {
+            patientId: currentPatient.id,
+            audioBlob: this.recorder.recordingBlob,
+            duration: this.timer.totalDuration,
+            mimeType: this.recorder.mimeType,
+            fileSize: this.recorder.recordingBlob.size
+        };
+
+        const recordingId = await this.db.addRecording(recordingData);
+        await this.updateDatabaseStatus();
+        
+        return recordingId;
+    }
+
+    downloadRecording() {
+        const url = URL.createObjectURL(this.recorder.recordingBlob);
+        const link = document.createElement('a');
+        
+        link.href = url;
+        link.download = this.generateFilename();
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        URL.revokeObjectURL(url);
+    }
+
+    generateFilename() {
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+        const duration = this.formatDuration(this.timer.totalDuration);
+        const extension = this.getFileExtension();
+        
+        return `parkinson-voice-test-${timestamp}-${duration.replace(':', 'm')}s${extension}`;
+    }
+
+    // =============================================================================
+    // UI MANAGEMENT
+    // =============================================================================
     updateUI() {
-        // Update button states
-        this.startBtn.disabled = this.isRecording;
-        this.pauseBtn.disabled = !this.isRecording || this.isPaused;
-        this.resumeBtn.disabled = !this.isRecording || !this.isPaused;
-        this.stopBtn.disabled = !this.isRecording;
+        this.updateButtons();
+        this.updateStatus();
+        this.updateTimer();
+    }
 
-        // Update status
-        if (this.isRecording && !this.isPaused) {
-            this.statusText.textContent = 'Recording...';
-            this.statusIndicator.className = 'status-indicator recording';
-        } else if (this.isRecording && this.isPaused) {
-            this.statusText.textContent = 'Recording Paused';
-            this.statusIndicator.className = 'status-indicator paused';
+    updateButtons() {
+        this.elements.startBtn.disabled = this.state.isRecording;
+        this.elements.pauseBtn.disabled = !this.canPause();
+        this.elements.resumeBtn.disabled = !this.canResume();
+        this.elements.stopBtn.disabled = !this.canStop();
+        this.elements.saveBtn.disabled = !this.state.hasRecording;
+        this.elements.downloadBtn.disabled = !this.state.hasRecording;
+    }
+
+    updateStatus() {
+        if (this.state.isRecording && !this.state.isPaused) {
+            this.elements.statusText.textContent = 'Recording...';
+            this.elements.statusIndicator.className = 'status-indicator recording';
+        } else if (this.state.isRecording && this.state.isPaused) {
+            this.elements.statusText.textContent = 'Recording Paused';
+            this.elements.statusIndicator.className = 'status-indicator paused';
         } else {
-            this.statusText.textContent = 'Ready to Record';
-            this.statusIndicator.className = 'status-indicator idle';
-            this.recordingTime.textContent = '00:00';
+            this.elements.statusText.textContent = 'Ready to Record';
+            this.elements.statusIndicator.className = 'status-indicator idle';
         }
     }
 
+    updateTimer() {
+        if (!this.state.isRecording && !this.state.hasRecording) {
+            this.elements.recordingTime.textContent = '00:00';
+        }
+    }
+
+    // =============================================================================
+    // VALIDATION METHODS
+    // =============================================================================
+    validateStartConditions() {
+        if (!this.checkSecureContext()) {
+            return false;
+        }
+        
+        if (!this.patientManager.getCurrentPatient()) {
+            this.showErrorBanner('Please select or create a patient before recording.');
+            return false;
+        }
+        
+        return true;
+    }
+
+    checkSecureContext() {
+        const isSecure = location.protocol === 'https:' || 
+                        location.hostname === 'localhost' || 
+                        location.hostname === '127.0.0.1';
+                        
+        if (!isSecure) {
+            this.showErrorBanner('Recording requires a secure context (https) on mobile. Use HTTPS or connect via localhost.');
+            return false;
+        }
+        
+        return true;
+    }
+
+    canPause() {
+        return this.state.isRecording && !this.state.isPaused;
+    }
+
+    canResume() {
+        return this.state.isRecording && this.state.isPaused;
+    }
+
+    canStop() {
+        return this.state.isRecording;
+    }
+
+    // =============================================================================
+    // ERROR HANDLING & MESSAGING
+    // =============================================================================
+    handleRecordingError(error) {
+        console.error('Recording error:', error);
+        
+        if (error?.name === 'NotAllowedError' || error?.name === 'SecurityError') {
+            this.showErrorBanner('Microphone access was blocked. Please allow microphone permissions and try again.');
+        } else if (error?.name === 'NotFoundError') {
+            this.showErrorBanner('No microphone found. Please check your device and try again.');
+        } else {
+            this.showErrorBanner('Could not start recording. Please check permissions and try again.');
+        }
+    }
+
+    showSuccessBanner(message) {
+        console.log('Success:', message);
+        this.showBanner(message, 'success');
+    }
+    
+    showErrorBanner(message) {
+        this.showBanner(message, 'error');
+    }
+    
+    showInfoBanner(message) {
+        this.showBanner(message, 'info');
+    }
+    
+    showBanner(message, type = 'info') {
+        
+        this.elements.errorMessage.textContent = message;
+        this.elements.errorMessage.className = `info-banner ${type}`;
+        this.elements.errorMessage.style.display = 'block';
+        this.elements.errorMessage.scrollIntoView({ behavior: 'smooth' });
+        
+        // Auto-hide success/info messages after BANNER_DURATION seconds
+        if (type === 'success' || type === 'info') {
+            setTimeout(() => this.hideBanner(), CONFIG.UI.BANNER_DURATION);
+        }
+    }
+    
+    hideBanner() {
+        this.elements.errorMessage.style.display = 'none';
+    }
+
+    // =============================================================================
+    // UTILITY METHODS
+    // =============================================================================
     getSupportedMimeType() {
-        for (const type of CONFIG.RECORDING.SUPPORTED_FORMATS) {
-            if (MediaRecorder.isTypeSupported(type)) {
-                return type;
+        const supportedFormats = [
+            'audio/webm;codecs=opus',
+            'audio/webm',
+            'audio/mp4',
+            'audio/ogg;codecs=opus',
+            'audio/ogg'
+        ];
+        
+        for (const format of supportedFormats) {
+            if (MediaRecorder.isTypeSupported(format)) {
+                return format;
             }
         }
-        // iOS Safari often supports audio/mp4
-        return 'audio/mp4';
+        return 'audio/mp4'; // iOS Safari fallback
     }
+
+    getFileExtension() {
+        const mimeType = this.recorder.mimeType || this.getSupportedMimeType();
+        
+        if (mimeType.includes('webm')) return '.webm';
+        if (mimeType.includes('mp4')) return '.mp4';
+        if (mimeType.includes('ogg')) return '.ogg';
+        
+        return '.webm';
+    }
+
+    // =============================================================================
+    // CLEANUP METHODS
+    // =============================================================================
+
+    cleanupAudioStream() {
+        if (this.recorder.audioStream) {
+            this.recorder.audioStream.getTracks().forEach(track => track.stop());
+            this.recorder.audioStream = null;
+        }
+    }
+
+    cleanupAudioContext() {
+        if (this.audio.context) {
+            this.audio.context.close();
+            this.audio.context = null;
+        }
+    }
+
 
     async updateDatabaseStatus() {
         try {
-            const stats = await this.db.getDatabaseStats();
-            const dbStatusElement = document.getElementById('db-status');
-            
-            dbStatusElement.innerHTML = `
-                <div class="db-stats">
-                    <h4>Database Statistics</h4>
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <strong>Total Patients:</strong> ${stats.totalPatients}
-                        </div>
-                        <div class="stat-item">
-                            <strong>Total Recordings:</strong> ${stats.totalRecordings}
-                        </div>
-                        <div class="stat-item">
-                            <strong>Total Storage:</strong> ${this.formatBytes(stats.totalStorage)}
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            dbStatusElement.style.display = 'block';
+            if (window.parkinsonApp?.updateDatabaseStatus) {
+                await window.parkinsonApp.updateDatabaseStatus();
+            }
         } catch (error) {
             console.error('Error updating database status:', error);
         }
     }
 
+    // =============================================================================
+    // PUBLIC API METHODS
+    // =============================================================================
+
+    hasRecording() {
+        return this.state.hasRecording && this.recorder.recordingBlob !== null;
+    }
+
+    getRecordingData() {
+        if (!this.hasRecording()) {
+            return null;
+        }
+        
+        return {
+            blob: this.recorder.recordingBlob,
+            duration: this.timer.totalDuration,
+            formattedDuration: this.formatDuration(this.timer.totalDuration),
+            mimeType: this.recorder.mimeType,
+            fileSize: this.recorder.recordingBlob.size
+        };
+    }
+
     formatBytes(bytes) {
         if (bytes === 0) return '0 Bytes';
+        
         const k = 1024;
         const sizes = ['Bytes', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-
-    showError(message) {
-        this.errorMessage.textContent = message;
-        this.errorMessage.style.display = 'block';
-        this.errorMessage.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    showPersistentNotice(message, type = 'info') {
-        let banner = document.getElementById('recording-message');
-        if (!banner) {
-            banner = document.createElement('div');
-            banner.id = 'recording-message';
-            banner.className = 'info-banner';
-            this.audioPlayback.parentNode.insertBefore(banner, this.audioPlayback);
-        }
-        banner.textContent = message;
-        banner.className = `info-banner ${type}`;
-        banner.style.display = 'block';
-    }
-
-    showSuccess(message) {
-        // Create persistent success banner instead of auto-dismissing toast
-        this.showPersistentNotice(message, 'success');
-    }
-
-    hideError() {
-        this.errorMessage.style.display = 'none';
-    }
-
-    // Public method to check if recording is available
-    hasRecording() {
-        return this.recordingBlob !== null;
-    }
-
-    // Public method to get recording data
-    getRecordingData() {
-        if (!this.recordingBlob) return null;
         
-        return {
-            blob: this.recordingBlob,
-            duration: this.recordingDuration,
-            mimeType: this.getSupportedMimeType(),
-            fileSize: this.recordingBlob.size
-        };
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 }

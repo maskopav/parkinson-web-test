@@ -49,19 +49,29 @@ class ParkinsonWebTestApp {
             
             // Show database status if there's data
             if (stats.totalPatients > 0 || stats.totalRecordings > 0) {
-                const dbStatusElement = document.getElementById('db-status');
-                const patientsEl = document.getElementById('stat-total-patients');
-                const recordingsEl = document.getElementById('stat-total-recordings');
-                const storageEl = document.getElementById('stat-total-storage');
-
-                if (patientsEl) patientsEl.textContent = String(stats.totalPatients);
-                if (recordingsEl) recordingsEl.textContent = String(stats.totalRecordings);
-                if (storageEl) storageEl.textContent = this.formatBytes(stats.totalStorage);
-
-                if (dbStatusElement) dbStatusElement.style.display = 'block';
+                this.updateDatabaseStatus(stats);
             }
         } catch (error) {
             console.error('Error showing initial status:', error);
+        }
+    }
+
+    // Public: update DB status area using provided stats or by fetching them
+    async updateDatabaseStatus(providedStats) {
+        try {
+            const stats = providedStats || await this.databaseManager.getDatabaseStats();
+            const dbStatusElement = document.getElementById('db-status');
+            const patientsEl = document.getElementById('stat-total-patients');
+            const recordingsEl = document.getElementById('stat-total-recordings');
+            const storageEl = document.getElementById('stat-total-storage');
+
+            if (patientsEl) patientsEl.textContent = String(stats.totalPatients);
+            if (recordingsEl) recordingsEl.textContent = String(stats.totalRecordings);
+            if (storageEl) storageEl.textContent = this.formatBytes(stats.totalStorage);
+
+            if (dbStatusElement) dbStatusElement.style.display = 'block';
+        } catch (error) {
+            console.error('Error updating database status:', error);
         }
     }
 
