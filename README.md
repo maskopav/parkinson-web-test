@@ -1,26 +1,64 @@
 # Parkinson Web Test Application
 
-A web-based testing platform designed for Parkinson's patients to assess and monitor cognitive, motor, and speech functions using everyday devices.
+This is a web-based testing platform for Parkinson's patients, designed to be a flexible, modular, and extensible system for clinical assessment and monitoring. The platform empowers clinicians to create and manage custom test batteries, which can then be securely delivered to patients via unique links or QR codes for remote completion.
 
-## Overview
-
-This application provides a modular, database-enabled platform for conducting voice recording assessments with patient management capabilities. It leverages browser-based sensor access to deliver interactive tests tailored to individual patients, enabling remote assessment and long-term monitoring of disease progression.
 
 ## Features
 
-### Core Functionality
-- **Patient Management**: Create, search, and manage patient records with unique IDs
-- **Voice Recording**: High-quality audio capture with pause/resume functionality
-- **Database Storage**: Local IndexedDB storage for patients and recordings
-- **Real-time Visualization**: Audio level monitoring and recording duration tracking
-- **Export Capabilities**: Download recordings and export database data
+- **Task Management System**: A new, extensible system for defining and assigning different types of tests (e.g., Voice Recording, Cognitive Tasks, Motor Skills).
+- **Role-Based Interfaces**:  
+   - **Clinician Dashboard**: A secure interface for doctors to manage patients, select and configure test batteries, and generate patient-specific links.
+   - **Patient Interface**: A streamlined, simple interface for patients to access and complete their assigned tests.
+- **Secure Link/QR Code Generation**: Create unique, single-use access points for patients, ensuring data privacy and test integrity.
+- **Data & Database**:
+   - **Patient Management**: Create, search, and manage patient records.
+   - **Data Storage**: Persistent local storage using IndexedDB for patient, test, and results data.
 
-### Technical Features
-- **Modular Architecture**: Separated concerns for easy maintenance and extension
-- **Responsive Design**: Optimized for desktop, tablet, and mobile devices
-- **Browser Compatibility**: Supports modern browsers with fallback handling
-- **Accessibility**: Keyboard navigation and screen reader support
-- **Offline Capability**: Works without internet connection
+
+## Proposed Architecture
+### Module Structure
+```
+/src
+├── assets/                  # CSS, images, etc.
+├── modules/                 # Self-contained feature modules
+│   ├── clinician-dashboard/ # Clinician-facing interface
+│   ├── patient-tests/       # Patient-facing test interface
+│   ├── voice-recorder/      # Existing voice recording module, now part of a larger system
+│   └── (new-test-type)/     # Placeholder for future test modules
+├── services/                # Reusable core services
+│   ├── database.js          # Handles all IndexedDB operations
+│   ├── patient-manager.js   # Manages patient CRUD operations
+│   ├── test-manager.js      # NEW: Manages test configurations and assignments
+│   └── routing.js           # NEW: Manages application state and view loading
+├── utils/                   # Helper functions (e.g., validation, link generation)
+├── config.js                # Global application configuration
+└── app.js                   # Application bootstrap & initialization
+```
+
+### Server
+- `server.js`: Express server serving static files (LAN enabled)
+- `package.json`: Start scripts (`npm start`, `npm run dev`)
+
+### Database Schema
+- **Patients Table**: ID, firstName, lastName, dateOfBirth, gender, createdAt, updatedAt
+- **Recordings Table**: ID, patientId, dateTime, audioBlob, duration, mimeType, fileSize
+
+## Logic Flow: Clinician to Patient
+1. A clinician logs into the Clinician Dashboard module.
+
+2. They navigate to a patient's profile (or create a new one).
+
+3. The clinician selects a set of tests from the Test Manager service (e.g., voice-recorder, cognitive-test). The Test Manager handles the logic of which tests are available.
+
+4. The Test Manager generates a unique ID for the test session and a secure link/QR code.
+
+5. This link is sent to the patient.
+
+6. The patient opens the link. The Routing service detects the unique ID in the URL and loads the Patient Test Interface module.
+
+7. The Patient Test Interface uses the unique ID to retrieve the specific set of assigned tests and presents them to the patient.
+
+This approach keeps concerns separate: the clinician's view doesn't need to know anything about how a voice recording works, and a patient's view doesn't need to know anything about patient management. This is the essence of clean, modular, and extensible architecture.
 
 ## Installation
 
@@ -76,25 +114,6 @@ npm run dev
 - **Statistics**: View database usage and storage information
 - **Data Management**: Clear database or export for backup
 
-## Architecture
-
-### Module Structure
-```
-js/
-├── config.js          # Configuration and constants
-├── database.js        # IndexedDB management and operations
-├── patient-manager.js # Patient CRUD operations and validation
-├── voice-recorder.js  # Audio recording and processing
-└── app.js            # Main application coordination
-```
-
-### Server
-- `server.js`: Express server serving static files (LAN enabled)
-- `package.json`: Start scripts (`npm start`, `npm run dev`)
-
-### Database Schema
-- **Patients Table**: ID, firstName, lastName, dateOfBirth, gender, createdAt, updatedAt
-- **Recordings Table**: ID, patientId, dateTime, audioBlob, duration, mimeType, fileSize
 
 ## Configuration
 

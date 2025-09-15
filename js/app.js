@@ -4,6 +4,7 @@ class ParkinsonWebTestApp {
         this.databaseManager = null;
         this.patientManager = null;
         this.voiceRecorder = null;
+        this.testManager = null;
         this.isInitialized = false;
         
         this.init();
@@ -16,6 +17,9 @@ class ParkinsonWebTestApp {
             // Initialize database first
             this.databaseManager = new DatabaseManager();
             await this.databaseManager.init();
+
+            // Initialize test manager
+            this.testManager = new TestManager();
             
             // Initialize other modules
             this.patientManager = new PatientManager(this.databaseManager);
@@ -26,6 +30,7 @@ class ParkinsonWebTestApp {
             window.db = this.databaseManager;
             window.patientManager = this.patientManager;
             window.voiceRecorder = this.voiceRecorder;
+            window.testManager = this.testManager;
             
             this.isInitialized = true;
             console.log('Application initialized successfully');
@@ -199,5 +204,6 @@ window.utils = {
     clearDatabase: () => window.parkinsonApp?.clearDatabase(),
     getDatabaseStats: () => window.parkinsonApp?.getDatabaseManager()?.getDatabaseStats(),
     getAllPatients: () => window.parkinsonApp?.getDatabaseManager()?.getAllPatients(),
-    getAllRecordings: () => window.parkinsonApp?.getDatabaseManager()?.getAllRecordings()
+    getAllRecordings: () => window.parkinsonApp?.getDatabaseManager()?.getAllRecordings(),
+    getAllTests: () => window.parkinsonApp?.getTestManager()?.getAllTests()
 };
