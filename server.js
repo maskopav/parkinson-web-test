@@ -14,7 +14,7 @@ app.use(express.static(path.join(__dirname)));
 
 // Fallback to index.html for root
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(path.join(__dirname, 'src'), 'index.html'));
 });
 
 // Helper to get local IPs for instructions

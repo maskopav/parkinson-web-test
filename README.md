@@ -18,21 +18,28 @@ This is a web-based testing platform for Parkinson's patients, designed to be a 
 ## Proposed Architecture
 ### Module Structure
 ```
-/src
-├── assets/                  # CSS, images, etc.
-├── modules/                 # Self-contained feature modules
-│   ├── clinician-dashboard/ # Clinician-facing interface
-│   ├── patient-tests/       # Patient-facing test interface
-│   ├── voice-recorder/      # Existing voice recording module, now part of a larger system
-│   └── (new-test-type)/     # Placeholder for future test modules
-├── services/                # Reusable core services
-│   ├── database.js          # Handles all IndexedDB operations
-│   ├── patient-manager.js   # Manages patient CRUD operations
-│   ├── test-manager.js      # NEW: Manages test configurations and assignments
-│   └── routing.js           # NEW: Manages application state and view loading
-├── utils/                   # Helper functions (e.g., validation, link generation)
-├── config.js                # Global application configuration
-└── app.js                   # Application bootstrap & initialization
+web_app_test/
+├── node_modules/            # Installed dependencies
+├── package.json
+├── package-lock.json
+├── .gitignore
+├── README.md
+├── server.js                # Express server (entry point)
+└── src/
+   ├── assets/                  # CSS, images, etc.
+   ├── modules/                 # Self-contained feature modules
+   │   ├── clinician-dashboard/ # Clinician-facing interface
+   │   ├── patient-tests/       # Patient-facing test interface
+   │   ├── voice-recorder/      # Existing voice recording module, now part of a larger system
+   │   └── (new-test-type)/     # Placeholder for future test modules
+   ├── services/                # Reusable core services
+   │   ├── database.js          # Handles all IndexedDB operations
+   │   ├── patient-manager.js   # Manages patient CRUD operations
+   │   ├── test-manager.js      # NEW: Manages test configurations and assignments
+   │   └── routing.js           # NEW: Manages application state and view loading
+   ├── utils/                   # Helper functions (e.g., validation, link generation)
+   ├── config.js                # Global application configuration
+   └── app.js                   # Application bootstrap & initialization
 ```
 
 ### Server
