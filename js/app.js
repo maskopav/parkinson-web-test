@@ -5,6 +5,8 @@ class ParkinsonWebTestApp {
         this.patientManager = null;
         this.voiceRecorder = null;
         this.testManager = null;
+        this.router = null;
+        this.clinicianDashboard = null;
         this.isInitialized = false;
         
         this.init();
@@ -18,12 +20,16 @@ class ParkinsonWebTestApp {
             this.databaseManager = new DatabaseManager();
             await this.databaseManager.init();
 
-            // Initialize test manager
+            // Initialize core services
             this.testManager = new TestManager();
+
+            // Initialize the Router. It needs to know about the app.
+            this.router = new Router(this); 
             
             // Initialize other modules
             this.patientManager = new PatientManager(this.databaseManager);
             this.voiceRecorder = new VoiceRecorder(this.databaseManager, this.patientManager);
+            this.clinicianDashboard = new ClinicianDashboard();
             
             // Set up global references for debugging
             window.app = this;
@@ -31,6 +37,8 @@ class ParkinsonWebTestApp {
             window.patientManager = this.patientManager;
             window.voiceRecorder = this.voiceRecorder;
             window.testManager = this.testManager;
+            window.router = this.router;
+            window.clinicianDashboard = this.clinicianDashboard;
             
             this.isInitialized = true;
             console.log('Application initialized successfully');

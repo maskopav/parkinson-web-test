@@ -17,6 +17,7 @@ class PatientManager {
         this.patientInfoDisplay = document.getElementById('patient-info-display');
         this.patientDetails = document.getElementById('patient-details');
         this.updatePatientBtn = document.getElementById('update-patient-btn');
+        this.proceedToRecordBtn = document.getElementById('proceed-to-record-btn');
         
         // Internal state for edit mode
         this.isEditing = false;
@@ -27,6 +28,7 @@ class PatientManager {
     init() {
         this.bindEvents();
         this.setDefaultDate();
+        this.hidePatientDisplay();
     }
 
     bindEvents() {
@@ -38,6 +40,13 @@ class PatientManager {
         }
         if (this.updatePatientBtn) {
             this.updatePatientBtn.addEventListener('click', () => this.onUpdateClicked());
+        }
+
+        if (this.proceedToRecordBtn) {
+            this.proceedToRecordBtn.addEventListener('click', () => {
+                // Instead of calling a function directly, change the URL hash
+                window.location.hash = '#voice-recorder';
+            });
         }
         
         // Enter key support for patient ID search

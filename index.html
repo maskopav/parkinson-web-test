@@ -164,6 +164,13 @@
             
             <div id="error-message" class="error-message" style="display: none;"></div>
         </section>
+
+        <section id="clinician-dashboard-section" class="clinician-section" style="display: none;">
+            <h2>Clinician Dashboard</h2>
+            <p>This is where the doctor's interface will be built. You can manage patients, create test batteries, and generate links here.</p>
+            <button class="btn btn-secondary" onclick="window.location.hash='#patient-manager'">Go to Patient Management</button>
+        </section>
+
         
         <!-- Database Status -->
         <div id="db-status" class="db-status" style="display: none;">
@@ -182,6 +189,7 @@
                 </div>
             </div>
         </div>
+
     </div>
     
     <!-- Scripts -->
@@ -191,5 +199,7 @@
     <script src="js/patient-manager.js"></script>
     <script src="js/voice-recorder.js"></script>
     <script src="js/app.js"></script>
+    <script src="assignments/routing.js"></script>
+    <script src="modules/clinician-dashboard.js"></script> 
 </body>
 </html>
