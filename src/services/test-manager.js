@@ -4,9 +4,9 @@
  * This is a foundational step for a modular test management system.
  */
 class TestManager {
-    constructor() {
-        // A registry to hold all available tests
-        this.testRegistry = new Map();
+    constructor(databaseManager) {
+        this.db = databaseManager; // To access the database
+        this.testRegistry = new Map(); // A registry to hold all available tests
         this.init();
     }
 
@@ -59,7 +59,40 @@ class TestManager {
     getAllTests() {
         return Array.from(this.testRegistry.values());
     }
-}
 
-// Ensure the class is globally accessible for other modules to use
-window.TestManager = TestManager;
+    // Method to save a new test assignment to the database
+    async saveTestAssignment(patientId, selectedTests) {
+        try {
+            const assignmentId = this.generateUniqueId();
+            const assignment = {
+                id: assignmentId,
+                patientId: patientId,
+                tests: selectedTests,
+                createdAt: new Date().toISOString()
+            };
+
+            await this.db.addTestAssignment(assignment);
+            console.log(`Test assignment created for patient ${patientId} with ID: ${assignmentId}`);
+            return assignmentId;
+        } catch (error) {
+            console.error('Error saving test assignment:', error);
+            throw error;
+        }
+    }
+
+    // Method to retrieve a test assignment from the database
+    async getTestAssignment(assignmentId) {
+        try {
+            const assignment = await this.db.get('test-assignments', assignmentId);
+            return assignment;
+        } catch (error) {
+            console.error('Error retrieving test assignment:', error);
+            return null;
+        }
+    }
+
+    // A simple utility to generate a unique ID
+    generateUniqueId() {
+        return 'assignment-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    }
+}

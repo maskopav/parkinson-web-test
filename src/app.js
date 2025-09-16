@@ -15,21 +15,22 @@ class ParkinsonWebTestApp {
     async init() {
         try {
             console.log('Initializing Parkinson Web Test Application...');
-            
-            // Initialize database first
+
+
+            // Step 1: Initialize core services
             this.databaseManager = new DatabaseManager();
             await this.databaseManager.init();
-
-            // Initialize core services
-            this.testManager = new TestManager();
-
-            // Initialize the Router. It needs to know about the app.
-            this.router = new Router(this); 
             
-            // Initialize other modules
+            // Step 2: Initialize business logic managers,
+            // passing their dependencies (the database manager)
             this.patientManager = new PatientManager(this.databaseManager);
+            this.testManager = new TestManager(this.databaseManager);
+            
+            // Step 3: Initialize UI/page-specific modules,
+            // passing the managers they will need
             this.voiceRecorder = new VoiceRecorder(this.databaseManager, this.patientManager);
-            this.clinicianDashboard = new ClinicianDashboard();
+            this.clinicianDashboard = new ClinicianDashboard(this.patientManager, this.testManager);
+            this.router = new Router(this); 
             
             // Set up global references for debugging
             window.app = this;

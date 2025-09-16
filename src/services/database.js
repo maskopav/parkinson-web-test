@@ -44,34 +44,33 @@ class DatabaseManager {
 
     createTables(db) {
         try {
-            // Create patients table
-            const patientStore = db.createObjectStore(this.patientsTable, {
-                keyPath: 'id',
-                autoIncrement: true
-            });
-            
-            // Create indexes for efficient searching
-            patientStore.createIndex('firstName', 'firstName', { unique: false });
-            patientStore.createIndex('lastName', 'lastName', { unique: false });
-            patientStore.createIndex('dateOfBirth', 'dateOfBirth', { unique: false });
-            patientStore.createIndex('fullName', ['firstName', 'lastName'], { unique: false });
-            patientStore.createIndex('createdAt', 'createdAt', { unique: false });
-            
-            console.log('Created patients table with indexes');
+            // Create the patients object store
+            if (!db.objectStoreNames.contains(this.patientsTable)) {
+                db.createObjectStore(this.patientsTable, { keyPath: 'id' });
+                patientStore.createIndex('id', { unique: true });
+                patientStore.createIndex('firstName', 'firstName', { unique: false });
+                patientStore.createIndex('lastName', 'lastName', { unique: false });
+                patientStore.createIndex('dateOfBirth', 'dateOfBirth', { unique: false });
+                patientStore.createIndex('fullName', ['firstName', 'lastName'], { unique: false });
+                patientStore.createIndex('createdAt', 'createdAt', { unique: false });
+            }
 
-            // Create recordings table
-            const recordingStore = db.createObjectStore(this.recordingsTable, {
-                keyPath: 'id',
-                autoIncrement: true
-            });
+            // Create the recordings object store
+            if (!db.objectStoreNames.contains(this.recordingsTable)) {
+                const recordingStore = db.createObjectStore(this.recordingsTable, { keyPath: 'id', autoIncrement: true });
+                recordingStore.createIndex('patientId', 'patientId', { unique: false });
+                recordingStore.createIndex('dateTime', 'dateTime', { unique: false });
+                recordingStore.createIndex('mimeType', 'mimeType', { unique: false });
+                recordingStore.createIndex('patientDateTime', ['patientId', 'dateTime'], { unique: false });
+            }
+
+            // Create the test assignments object store
+            if (!db.objectStoreNames.contains('test-assignments')) {
+                const assignmentsStore = db.createObjectStore('test-assignments', { keyPath: 'id' });
+                assignmentsStore.createIndex('patientId', 'patientId', { unique: false });
+            }
             
-            // Create indexes for efficient searching
-            recordingStore.createIndex('patientId', 'patientId', { unique: false });
-            recordingStore.createIndex('dateTime', 'dateTime', { unique: false });
-            recordingStore.createIndex('mimeType', 'mimeType', { unique: false });
-            recordingStore.createIndex('patientDateTime', ['patientId', 'dateTime'], { unique: false });
-            
-            console.log('Created recordings table with indexes');
+            console.log('Database upgrade complete. Stores created/updated.');
         } catch (error) {
             console.error('Error creating tables:', error);
             throw error;
@@ -386,6 +385,24 @@ class DatabaseManager {
             });
         });
     }
+
+    // TESTS OPERATIONS
+    async addTestAssignment(assignmentData) {
+        if (!assignmentData) {
+            throw new Error('Test assignment data is required');
+        }
+    
+        return this.executeTransaction(['test-assignments'], 'readwrite', (transaction) => {
+            return new Promise((resolve, reject) => {
+                const store = transaction.objectStore('test-assignments');
+                const request = store.add(assignmentData);
+    
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(new Error('Failed to add test assignment'));
+            });
+        });
+    }
+
 
     // UTILITY METHODS
 

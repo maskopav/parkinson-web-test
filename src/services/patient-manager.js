@@ -413,4 +413,8 @@ class PatientManager {
     getCurrentPatient() {
         return this.currentPatient;
     }
+
+    async getAllPatients() {
+        return this.db.getAllPatients();
+    }
 }

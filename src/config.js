@@ -3,7 +3,7 @@ const CONFIG = {
     // Database configuration
     DATABASE: {
         NAME: 'parkinson_test_db',
-        VERSION: 1,
+        VERSION: 2,
         PATIENTS_TABLE: 'patients',
         RECORDINGS_TABLE: 'recordings'
     },
