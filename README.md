@@ -13,6 +13,9 @@ This is a web-based testing platform for Parkinson's patients, designed to be a 
 - **Data & Database**:
    - **Patient Management**: Create, search, and manage patient records.
    - **Data Storage**: Persistent local storage using IndexedDB for patient, test, and results data.
+- **Multiple sets of tests**: Different test configurations in the DB, clinician decides.
+- **TODO?: Login and User Management**: A secure authentication system to handle different user roles (clinician vs. patient). This should include features like multi-factor authentication (MFA) to protect sensitive data.
+- **TODO: Regulatory Compliance**: Data encryption, secure user authentication.
 
 
 ## Proposed Architecture

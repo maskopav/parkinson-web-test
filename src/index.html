@@ -167,29 +167,43 @@
 
         <section id="clinician-dashboard-section" class="clinician-section" style="display: none;">
             <h2>Clinician Dashboard</h2>
-            <p>Select a patient and the tests you want to assign to them. A unique link will be generated for the patient to access their test battery.</p>
-            
-            <div class="form-group">
-                <label for="dashboard-patient-select">Select Patient:</label>
-                <select id="dashboard-patient-select" class="form-control"></select>
-            </div>
-            
-            <h3>Available Tests</h3>
-            <ul id="dashboard-tests-list" class="tests-list">
-                </ul>
-            
-            <button id="create-link-btn" class="btn btn-primary">Create Patient Test Link</button>
-            
-            <div id="link-container" class="link-container" style="display: none;">
-                <label for="link-input">Test Session Link:</label>
-                <div class="input-group">
-                    <input type="text" id="link-input" class="form-control" readonly>
-                    <button id="copy-link-btn" class="btn btn-secondary">Copy</button>
+            <p class="section-intro">
+                Select a patient and assign tests. A unique link will be generated for them to access their test battery.
+            </p>
+            <!-- Patient selection -->
+            <div class="dashboard-card">
+                <h3>Patient Selection</h3>
+                <div class="form-group">
+                    <label for="dashboard-patient-select">Select Patient:</label>
+                    <select id="dashboard-patient-select" class="form-control"></select>
                 </div>
             </div>
+
+            <!-- Available tests -->
+            <div class="dashboard-card">
+                <h3>Available Tests</h3>
+                <div class="test-controls">
+                    <button id="select-all">Select All</button>
+                    <button id="deselect-all">Deselect All</button>
+                  </div>
+                <ul id="dashboard-tests-list" class="tests-list"></ul>
+            </div>
             
-            <p class="mt-2">
-                <a href="#patient-manager">Go to Patient Management</a>
+            <!-- Generate link -->
+            <div class="dashboard-card">
+                <button id="create-link-btn" class="btn btn-primary">Create Patient Test Link</button>
+                
+                <div id="link-container" class="link-container" style="display: none;">
+                    <label for="link-input">Test Session Link:</label>
+                    <div class="input-group">
+                        <input type="text" id="link-input" class="form-control" readonly>
+                        <button id="copy-link-btn" class="btn btn-secondary">Copy</button>
+                    </div>
+                </div>
+            </div>
+
+            <p class="mt-2 nav-link">
+                <a href="#patient-manager">← Back to Patient Management</a>
             </p>
         </section>
 

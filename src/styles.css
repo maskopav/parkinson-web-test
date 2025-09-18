@@ -489,6 +489,150 @@ select.error {
     color: var(--color-text-dark);
 }
 
+/* ========================================================================== 
+   CLINICIAN DASHBOARD 
+   ========================================================================== */
+
+.clinician-section .section-intro {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-base);
+}
+
+.dashboard-card {
+    background: var(--color-bg-light);
+    border: 2px solid var(--color-border-light);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-xl);
+    margin-bottom: var(--spacing-xxl);
+    box-shadow: var(--shadow-sm);
+}
+
+.test-controls {
+    margin-bottom: 16px;
+    display: flex;
+    gap: 12px;
+  }
+  
+  .test-controls button {
+    background: #2c2f38;         /* dark card-like background */
+    color: #fff;
+    border: none;
+    border-radius: 12px;          /* smooth rounded corners */
+    padding: 10px 18px;
+    font-size: 0.95em;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  }
+  
+  .test-controls button:hover {
+    background: #3d414d;         /* slightly lighter on hover */
+  }
+  
+  #select-all {
+    background: #4CAF50;         /* green */
+  }
+  
+  #select-all:hover {
+    background: #43a047;
+  }
+  
+  #deselect-all {
+    background: #e53935;         /* red */
+  }
+  
+  #deselect-all:hover {
+    background: #d32f2f;
+  }
+
+.tests-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-lg);
+}
+
+.test-item {
+    background: var(--color-bg-white);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+    transition: box-shadow var(--transition-normal), transform var(--transition-normal);
+}
+
+.test-label {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    cursor: pointer;
+}
+
+.test-item:hover {
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-2px);
+}
+
+/* Rounded checkbox */
+.test-label input[type="checkbox"] {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--color-border-dark);
+    border-radius: 50px;
+    background: var(--color-bg-light);
+    transition: background var(--transition-fast), border var(--transition-fast);
+    margin-top: 4px;
+}
+
+.test-label input[type="checkbox"]:checked {
+    background: var(--color-accent-dark, #2c3e50);
+    border-color: var(--color-accent-dark, #2c3e50);
+    box-shadow: inset 0 0 0 4px var(--color-bg-white);
+}
+
+/* Test info block */
+.test-info {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Test name vs description */
+.test-name {
+    font-weight: bold;
+    color: var(--color-text-primary);
+    margin-bottom: 2px;
+}
+
+.test-desc {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    line-height: 1.4;
+}
+
+.link-container {
+    margin-top: var(--spacing-lg);
+}
+
+.input-group {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+}
+
+.input-group input {
+    flex: 1;
+}
+
+.nav-link {
+    text-align: center;
+    margin-top: var(--spacing-lg);
+}
+
+
 /* ==========================================================================
    NOTIFICATION BANNERS AND ERRORS
    ========================================================================== */
